@@ -97,7 +97,9 @@ body.idle { cursor: none; }
   align-items: center;
   gap: calc(var(--h) * 0.24);
   width: calc(var(--h) * 0.2);
+  transition: opacity 0.18s ease;
 }
+.colon.dim { opacity: 0.15; }   /* off half of the blink, used when seconds are hidden */
 .colon i {
   width: calc(var(--h) * 0.058);
   aspect-ratio: 1;
@@ -279,7 +281,7 @@ body.idle .controls { opacity: 0; transform: translate(-50%, 12px); pointer-even
   <div class="face" id="face" data-seconds="on">
     <div class="clock" aria-hidden="true">
       <div class="group"><div class="card"></div><div class="card"></div></div>
-      <div class="colon"><i></i><i></i></div>
+      <div class="colon" id="mainColon"><i></i><i></i></div>
       <div class="group"><div class="card"></div><div class="card"></div></div>
       <div class="colon" id="secColon"><i></i><i></i></div>
       <div class="group" id="secGroup"><div class="card"></div><div class="card"></div></div>
@@ -505,8 +507,20 @@ body.idle .controls { opacity: 0; transform: translate(-50%, 12px); pointer-even
   let timer = 0;
   function tick() {
     render(!document.hidden);
+    blink();
     clearTimeout(timer);
     timer = setTimeout(tick, 1000 - (Date.now() % 1000) + 12);
+  }
+
+  // With seconds hidden, the colon keeps time instead: lit for the first half of each second, dim for the second.
+  const mainColon = document.getElementById('mainColon');
+  let blinkTimer = 0;
+  function blink() {
+    clearTimeout(blinkTimer);
+    const intoSecond = Date.now() % 1000;
+    const lit = state.seconds || intoSecond < 500;
+    mainColon.classList.toggle('dim', !lit);
+    if (!state.seconds && lit) blinkTimer = setTimeout(blink, 500 - intoSecond + 5);
   }
 
   /* ---- controls ---- */
@@ -544,6 +558,7 @@ body.idle .controls { opacity: 0; transform: translate(-50%, 12px); pointer-even
     }
     applySettings();
     render(true);
+    blink();
   });
 
   const fsElement = () => document.fullscreenElement || document.webkitFullscreenElement || null;
