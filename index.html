@@ -3,28 +3,40 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700&display=swap">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500&display=swap&text=%200123456789UTC%2B%E5%B9%B4%E6%9C%88%E6%97%A5%E6%98%9F%E6%9C%9F%E4%B8%80%E4%BA%8C%E4%B8%89%E5%9B%9B%E4%BA%94%E5%85%AD%E4%B8%8A%E4%B8%8B%E5%8D%88%E5%8F%B0%E5%8C%97%E5%B0%8F%E6%99%82%E9%A1%AF%E7%A4%BA%E7%A7%92%E6%95%B8%E5%85%A8%E8%9E%A2%E5%B9%95%E7%B5%90%E6%9D%9F">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500&display=swap&text=%200123456789%3A%2BUTC%C3%B7%E5%B9%B4%E6%9C%88%E6%97%A5%E6%98%9F%E6%9C%9F%E5%9B%9B%E5%8F%B0%E5%8C%97%E6%99%82%E9%96%93%E9%AC%A7%E9%90%98%E8%A8%AD%E5%AE%9A%E9%96%8B%E5%95%9F%E4%BE%9D%EF%BC%8C%E6%AF%8F%E5%A4%A9%E9%80%99%E5%80%8B%E9%9F%BF%E3%80%82%E5%88%86%E9%A0%81%E8%A6%81%E4%BF%9D%E6%8C%81%E8%91%97%E8%A9%A6%E8%81%BD%E5%AE%8C%E6%88%90%E9%BB%9E%E4%B8%80%E4%B8%8B%E7%95%AB%E9%9D%A2%E5%B0%B1%E6%9C%83%E6%92%AD%E6%94%BE%E6%8F%90%E7%A4%BA%E9%9F%B3%E5%81%9C%E6%AD%A2%E5%B0%8F%E9%A1%AF%E7%A7%92%E6%95%B8%E5%85%A8%E8%9E%A2%E5%B9%95%E4%BA%8C%E4%B8%89%E4%BA%94%E5%85%AD%E4%B8%8A%E5%8D%88%E7%B5%90%E6%9D%9F%C2%B7%E7%94%A8%E8%81%B2">
 <style>
 /* Layout: a true-black room; three frosted split-flap pairs in one centred row (three stacked rows on tall
-   screens); the date beneath; a small control pill pinned to the bottom that fades while the pointer rests. */
+   screens); the date beneath; a dock pinned to the bottom holding the control pill (fades while the pointer
+   rests), the alarm card above it, and the stop button while the alarm rings. */
 :root {
   color-scheme: dark;
   /* colour */
   --ink: #000;                              /* the room */
   --glass: rgba(228, 234, 255, 0.06);       /* frosted pane fill, a cool white */
+  --panel: rgba(14, 16, 22, 0.62);          /* alarm card: darker frost so its text stays legible over the digits */
   --rim: rgba(228, 234, 255, 0.16);         /* pane edge */
   --rim-lit: rgba(255, 255, 255, 0.34);     /* top edge catching the light */
   --numeral: #fff;                          /* digits and colon */
   --muted: rgba(228, 234, 255, 0.62);       /* date, resting controls */
-  --faint: rgba(228, 234, 255, 0.34);       /* zone label, dividers */
+  --faint: rgba(228, 234, 255, 0.34);       /* zone label, dividers, notes */
   --light: rgba(228, 234, 255, 0.2);        /* discs of light behind the glass */
   --light-soft: rgba(228, 234, 255, 0.13);
   --glow: rgba(255, 255, 255, 0.28);
   --chip: rgba(255, 255, 255, 0.14);        /* pressed control */
+  --switch-off: rgba(255, 255, 255, 0.1);
   --leaf-up: rgba(255, 255, 255, 0.025);    /* upper flap, lit from above */
   --leaf-down: rgba(0, 0, 0, 0.1);          /* lower flap, a shade darker */
   --seam: rgba(0, 0, 0, 0.78);              /* the gap between the two flaps */
   --seam-lit: rgba(255, 255, 255, 0.07);
+  /* alarm: the whole clock turns signal red and flashes */
+  --alarm: #ff453a;
+  --alarm-glow: rgba(255, 69, 58, 0.6);
+  --alarm-rim: rgba(255, 110, 100, 0.42);
+  --alarm-rim-lit: rgba(255, 160, 150, 0.6);
+  --alarm-glass: rgba(255, 69, 58, 0.1);
+  --alarm-light: rgba(255, 69, 58, 0.42);
+  --alarm-light-soft: rgba(255, 69, 58, 0.3);
+  --alarm-text: rgba(255, 178, 170, 0.88);
   /* type */
   --face-numeral: "Big Shoulders Display", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
   --face-text: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", "Heiti TC", sans-serif;
@@ -217,16 +229,26 @@ body.idle { cursor: none; }
 }
 .dateline .zone { color: var(--faint); }
 
-.controls {
+/* Dock: everything pinned to the bottom edge. */
+.dock {
   position: fixed;
   z-index: 10;
   left: 50%;
   bottom: calc(env(safe-area-inset-bottom, 0px) + 22px);
   transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100% - 32px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.controls {
   display: flex;
   align-items: center;
   gap: 4px;
-  max-width: calc(100% - 32px);
+  max-width: 100%;
   padding: 5px;
   border: 1px solid var(--rim);
   border-radius: 999px;
@@ -251,15 +273,140 @@ body.idle { cursor: none; }
   transition: background-color 0.2s, color 0.2s;
 }
 .controls button:hover { color: var(--numeral); }
-.controls button[aria-pressed="true"] { background: var(--chip); color: var(--numeral); }
-.controls button:focus-visible { outline: 2px solid var(--numeral); outline-offset: 2px; }
+.controls button[aria-pressed="true"],
+.controls button[aria-expanded="true"] { background: var(--chip); color: var(--numeral); }
+.controls button.armed { color: var(--numeral); }
+.controls button.armed::before {   /* lit dot: an alarm is set */
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 7px;
+  border-radius: 50%;
+  background: var(--numeral);
+  box-shadow: 0 0 6px var(--glow);
+  vertical-align: 2px;
+}
 .rule { flex: none; width: 1px; height: 16px; background: var(--faint); }
-body.idle .controls { opacity: 0; transform: translate(-50%, 12px); pointer-events: none; }
-@media (max-width: 380px) {
-  .controls button { padding: 8px 10px; letter-spacing: 0.04em; }
+body.idle .controls { opacity: 0; transform: translateY(12px); pointer-events: none; }
+
+.controls button:focus-visible,
+.panel-btn:focus-visible,
+.switch:focus-visible,
+.stop:focus-visible { outline: 2px solid var(--numeral); outline-offset: 2px; }
+
+/* Alarm card */
+.alarm-panel {
+  width: min(300px, 100%);
+  display: grid;
+  gap: 12px;
+  padding: 18px 18px 16px;
+  border: 1px solid var(--rim);
+  border-radius: 20px;
+  background: var(--panel);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  backdrop-filter: blur(24px) saturate(160%);
+  box-shadow: inset 0 1px 0 var(--rim-lit), 0 24px 48px -16px var(--ink);
+}
+.alarm-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.alarm-label { font: 500 12px/1 var(--face-text); letter-spacing: 0.16em; color: var(--muted); }
+.switch {
+  position: relative;
+  flex: none;
+  width: 46px;
+  height: 28px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--rim);
+  border-radius: 999px;
+  background: var(--switch-off);
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.switch .knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: transform 0.2s, background-color 0.2s;
+}
+.switch[aria-checked="true"] { background: var(--numeral); }
+.switch[aria-checked="true"] .knob { transform: translateX(18px); background: var(--ink); }
+#alarmTime {
+  width: 100%;
+  margin: 0;
+  padding: 2px 0 6px;
+  border: 0;
+  border-bottom: 1px solid var(--rim);
+  border-radius: 0;
+  background: transparent;
+  color: var(--numeral);
+  font: 700 46px/1.1 "Big Shoulders Display", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  letter-spacing: 0.04em;
+}
+#alarmTime:focus-visible { outline: none; border-bottom-color: var(--numeral); }
+#alarmTime::-webkit-calendar-picker-indicator { opacity: 0.6; cursor: pointer; }
+.alarm-note { margin: 0; font-size: 12px; line-height: 1.6; letter-spacing: 0.06em; color: var(--faint); }
+.alarm-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.panel-btn {
+  appearance: none;
+  margin: 0;
+  padding: 10px 16px;
+  border: 1px solid var(--rim);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--numeral);
+  font: 500 13px/1 var(--face-text);
+  letter-spacing: 0.1em;
+  cursor: pointer;
+}
+.panel-btn:hover { background: var(--chip); }
+.panel-btn.primary { border-color: transparent; background: var(--numeral); color: var(--ink); }
+
+/* Ringing: red, flashing once a second, with the stop button in the dock. */
+.ring-bar { display: grid; justify-items: center; gap: 10px; }
+.ring-hint { margin: 0; font-size: 13px; letter-spacing: 0.12em; color: var(--muted); }
+.stop {
+  appearance: none;
+  margin: 0;
+  padding: 16px 34px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--alarm);
+  color: var(--ink);
+  font: 500 16px/1 var(--face-text);
+  letter-spacing: 0.24em;
+  box-shadow: 0 0 28px var(--alarm-glow);
+  cursor: pointer;
+}
+body.ringing {
+  --numeral: var(--alarm);
+  --glow: var(--alarm-glow);
+  --rim: var(--alarm-rim);
+  --rim-lit: var(--alarm-rim-lit);
+  --glass: var(--alarm-glass);
+  --light: var(--alarm-light);
+  --light-soft: var(--alarm-light-soft);
+  --muted: var(--alarm-text);
+  --faint: var(--alarm-text);
+}
+body.ringing .leaf b,
+body.ringing .colon i,
+body.ringing .light { animation: alarm-flash 1s steps(1, end) infinite; }
+body.ringing .colon.dim { opacity: 1; }
+@keyframes alarm-flash { 50% { opacity: 0.16; } }
+
+@media (max-width: 560px) {
+  .stage { padding-block: 20px 112px; }
+  .controls { flex-wrap: wrap; justify-content: center; border-radius: 22px; }
+  .controls .rule { display: none; }
+  .controls button { padding: 9px 12px; letter-spacing: 0.04em; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .controls, .controls button { transition: none; }
+  .controls, .controls button, .colon, .switch, .switch .knob { transition: none; }
 }
 
 .sr-only {
@@ -286,19 +433,45 @@ body.idle .controls { opacity: 0; transform: translate(-50%, 12px); pointer-even
       <div class="colon" id="secColon"><i></i><i></i></div>
       <div class="group" id="secGroup"><div class="card"></div><div class="card"></div></div>
     </div>
-    <p class="dateline"><span id="date">2026年10月1日 星期四</span><span class="zone">台北 UTC+8</span></p>
+    <p class="dateline">
+      <span id="date">2026年10月1日 星期四</span>
+      <span class="zone">台北 UTC+8</span>
+      <span id="alarmInfo" hidden></span>
+    </p>
     <p class="sr-only" id="spoken">台北時間</p>
   </div>
 </main>
 
-<nav class="controls" id="controls" aria-label="時鐘設定">
-  <button type="button" id="mode24" aria-pressed="true">24 小時</button>
-  <button type="button" id="mode12" aria-pressed="false">12 小時</button>
-  <span class="rule" aria-hidden="true"></span>
-  <button type="button" id="secs" aria-pressed="true">顯示秒數</button>
-  <span class="rule" id="fsRule" aria-hidden="true"></span>
-  <button type="button" id="fs">全螢幕</button>
-</nav>
+<div class="dock">
+  <section class="alarm-panel" id="alarmPanel" role="dialog" aria-label="鬧鐘設定" hidden>
+    <div class="alarm-head">
+      <label class="alarm-label" for="alarmTime">鬧鐘時間</label>
+      <button type="button" class="switch" id="alarmSwitch" role="switch" aria-checked="false" aria-label="開啟鬧鐘"><span class="knob"></span></button>
+    </div>
+    <input type="time" id="alarmTime" value="07:00">
+    <p class="alarm-note">依台北時間，每天這個時間響。分頁要保持開著。</p>
+    <div class="alarm-actions">
+      <button type="button" class="panel-btn" id="alarmTest">試聽</button>
+      <button type="button" class="panel-btn primary" id="alarmDone">完成</button>
+    </div>
+  </section>
+
+  <div class="ring-bar" id="ringBar" role="alert" hidden>
+    <p class="ring-hint" id="ringHint" hidden>點一下畫面就會播放提示音</p>
+    <button type="button" class="stop" id="alarmStop">停止鬧鐘</button>
+  </div>
+
+  <nav class="controls" id="controls" aria-label="時鐘設定">
+    <button type="button" id="mode24" aria-pressed="true">24 小時</button>
+    <button type="button" id="mode12" aria-pressed="false">12 小時</button>
+    <span class="rule" aria-hidden="true"></span>
+    <button type="button" id="secs" aria-pressed="true">顯示秒數</button>
+    <span class="rule" aria-hidden="true"></span>
+    <button type="button" id="alarmBtn" aria-haspopup="dialog" aria-expanded="false" aria-controls="alarmPanel">鬧鐘</button>
+    <span class="rule" id="fsRule" aria-hidden="true"></span>
+    <button type="button" id="fs">全螢幕</button>
+  </nav>
+</div>
 
 <script>
 (() => {
@@ -336,10 +509,25 @@ body.idle .controls { opacity: 0; transform: translate(-50%, 12px); pointer-even
   }
   /* ---- end time ---- */
 
+  /* ---- Alarm timing ---- */
+  const TAIPEI_OFFSET = 8 * 3600e3;   // Asia/Taipei keeps UTC+8 all year, no daylight saving
+  const LATE_LIMIT = 2;               // minutes; waking up later than this (computer asleep, throttled tab) skips that day's alarm
+  function minuteOf(ms) { return Math.floor((ms + TAIPEI_OFFSET) / 60000); }
+  // Was the alarm minute (minutes after midnight, Taipei) entered after prevMs and no later than nowMs?
+  function alarmDue(prevMs, nowMs, alarmMin) {
+    const prev = minuteOf(prevMs), cur = minuteOf(nowMs);
+    for (let k = Math.max(prev + 1, cur - LATE_LIMIT); k <= cur; k++) {
+      if (k % 1440 === alarmMin) return true;
+    }
+    return false;
+  }
+  /* ---- end alarm timing ---- */
+
   const DUR = 640;       // ms for one flap to fall and settle
   const FALL = 0.82;     // share of DUR spent falling; the rest is the small bounce on landing
   const DEPTH = 4.4;     // perspective distance, in half-card heights
   const STAGGER = 55;    // ms between neighbouring digits when several change at once
+  const RING_SOUND_SECONDS = 60;   // the tone stops by itself after a minute; the red flashing stays until stopped
 
   const root = document.documentElement;
   const face = document.getElementById('face');
@@ -353,9 +541,22 @@ body.idle .controls { opacity: 0; transform: translate(-50%, 12px); pointer-even
     },
     set(key, on) {
       try { localStorage.setItem('flipclock.' + key, on ? '1' : '0'); } catch (e) {}
+    },
+    getText(key, fallback) {
+      try { const v = localStorage.getItem('flipclock.' + key); return v === null ? fallback : v; }
+      catch (e) { return fallback; }
+    },
+    setText(key, v) {
+      try { localStorage.setItem('flipclock.' + key, v); } catch (e) {}
     }
   };
-  const state = { h12: store.get('h12', false), seconds: store.get('seconds', true) };
+  const savedAlarm = store.getText('alarmTime', '07:00');
+  const state = {
+    h12: store.get('h12', false),
+    seconds: store.get('seconds', true),
+    alarmOn: store.get('alarmOn', false),
+    alarmTime: /^\d{2}:\d{2}$/.test(savedAlarm) ? savedAlarm : '07:00'
+  };
 
   /* ---- cards ---- */
   const LEAVES =
@@ -490,8 +691,8 @@ body.idle .controls { opacity: 0; transform: translate(-50%, 12px); pointer-even
   const pad = n => (n < 10 ? '0' : '') + n;
   let lastDate = '', lastSpoken = '';
 
-  function render(animate) {
-    const t = taipei(Date.now());
+  function render(animate, now) {
+    const t = taipei(now === undefined ? Date.now() : now);
     const digits = digitsFor(t, state.h12);
     const motion = animate && !reduce.matches;
     let order = 0;
@@ -506,7 +707,9 @@ body.idle .controls { opacity: 0; transform: translate(-50%, 12px); pointer-even
 
   let timer = 0;
   function tick() {
-    render(!document.hidden);
+    const now = Date.now();
+    render(!document.hidden, now);
+    checkAlarm(now);
     blink();
     clearTimeout(timer);
     timer = setTimeout(tick, 1000 - (Date.now() % 1000) + 12);
@@ -546,6 +749,7 @@ body.idle .controls { opacity: 0; transform: translate(-50%, 12px); pointer-even
     store.set('h12', on);
     applySettings();
     render(true);
+    updateAlarmInfo();
   }
   btn24.addEventListener('click', () => setH12(false));
   btn12.addEventListener('click', () => setH12(true));
@@ -599,7 +803,7 @@ body.idle .controls { opacity: 0; transform: translate(-50%, 12px); pointer-even
     document.body.classList.remove('idle');
     clearTimeout(idleTimer);
     idleTimer = setTimeout(() => {
-      if (controls.matches(':hover') || controls.querySelector(':focus-visible')) wake();
+      if (!panel.hidden || controls.matches(':hover') || controls.querySelector(':focus-visible')) wake();
       else document.body.classList.add('idle');
     }, 3500);
   }
@@ -608,15 +812,199 @@ body.idle .controls { opacity: 0; transform: translate(-50%, 12px); pointer-even
   }
   window.addEventListener('pointerdown', keepAwake, { passive: true });
 
+  /* ---- alarm ---- */
+  const panel = document.getElementById('alarmPanel');
+  const alarmBtn = document.getElementById('alarmBtn');
+  const alarmInput = document.getElementById('alarmTime');
+  const alarmSwitch = document.getElementById('alarmSwitch');
+  const alarmTest = document.getElementById('alarmTest');
+  const alarmDone = document.getElementById('alarmDone');
+  const alarmInfo = document.getElementById('alarmInfo');
+  const ringBar = document.getElementById('ringBar');
+  const ringHint = document.getElementById('ringHint');
+  const stopBtn = document.getElementById('alarmStop');
+
+  let lastCheck = Date.now();
+  let ringing = false, ringSoundStarted = false;
+  let audio = null, tone = null;
+
+  function alarmMinute() {
+    const [h, m] = state.alarmTime.split(':').map(Number);
+    return h * 60 + m;
+  }
+  function formatAlarm() {
+    const [h, m] = state.alarmTime.split(':').map(Number);
+    if (!state.h12) return pad(h) + ':' + pad(m);
+    return (h < 12 ? '上午 ' : '下午 ') + pad(h % 12 || 12) + ':' + pad(m);
+  }
+  function checkAlarm(now) {
+    const due = state.alarmOn && !ringing && alarmDue(lastCheck, now, alarmMinute());
+    lastCheck = now;
+    if (due) startRinging();
+  }
+
+  // Browsers only let a page make sound after the viewer has clicked or typed on it,
+  // so audio is switched on during an interaction and kept running for later.
+  function audioReady() { return !!audio && audio.state === 'running'; }
+  function unlockAudio() {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    try {
+      if (!audio) {
+        audio = new AC();
+        audio.addEventListener('statechange', audioChanged);
+      }
+      if (audio.state !== 'running') audio.resume().then(audioChanged, () => {});
+      const blip = audio.createBufferSource();   // iOS unlocks only once a sound starts inside the tap
+      blip.buffer = audio.createBuffer(1, 1, 22050);
+      blip.connect(audio.destination);
+      blip.start(0);
+    } catch (e) { /* no sound available; the red flashing still works */ }
+  }
+  function audioChanged() {
+    if (ringing && !ringSoundStarted) startTone(RING_SOUND_SECONDS, true);
+    ringHint.hidden = !ringing || ringSoundStarted;
+    updateAlarmInfo();
+  }
+
+  // Four short beeps at the start of every second, in step with the red flash.
+  function startTone(seconds, forRing) {
+    if (!audioReady()) return false;
+    stopTone();
+    const t0 = audio.currentTime + 0.05;
+    const osc = audio.createOscillator();
+    const gain = audio.createGain();
+    osc.type = 'triangle';
+    osc.frequency.value = 1046.5;
+    const g = gain.gain;
+    g.setValueAtTime(0, t0);
+    for (let s = 0; s < seconds; s++) {
+      for (let k = 0; k < 4; k++) {
+        const at = t0 + s + k * 0.12;
+        g.setValueAtTime(0, at);
+        g.linearRampToValueAtTime(0.4, at + 0.008);
+        g.setValueAtTime(0.4, at + 0.06);
+        g.linearRampToValueAtTime(0, at + 0.07);
+      }
+    }
+    osc.connect(gain);
+    gain.connect(audio.destination);
+    osc.start(t0);
+    osc.stop(t0 + seconds);
+    const current = { osc, gain };
+    osc.onended = () => { if (tone === current) tone = null; };
+    tone = current;
+    if (forRing) ringSoundStarted = true;
+    return true;
+  }
+  function stopTone() {
+    if (!tone) return;
+    const { osc, gain } = tone;
+    tone = null;
+    try {
+      const now = audio.currentTime;
+      gain.gain.cancelScheduledValues(now);
+      gain.gain.setValueAtTime(0, now);
+      osc.stop(now + 0.02);
+    } catch (e) { /* already stopped */ }
+  }
+
+  function startRinging() {
+    ringing = true;
+    ringSoundStarted = false;
+    closePanel();
+    document.body.classList.add('ringing');
+    controls.hidden = true;
+    ringBar.hidden = false;
+    if (!startTone(RING_SOUND_SECONDS, true) && audio && audio.state !== 'closed') {
+      audio.resume().then(audioChanged, () => {});
+    }
+    ringHint.hidden = ringSoundStarted;
+    stopBtn.focus({ preventScroll: true });
+  }
+  function stopRinging() {
+    if (!ringing) return;
+    ringing = false;
+    stopTone();
+    document.body.classList.remove('ringing');
+    ringBar.hidden = true;
+    ringHint.hidden = true;
+    controls.hidden = false;
+    wake();
+  }
+
+  function updateAlarmInfo() {
+    alarmSwitch.setAttribute('aria-checked', String(state.alarmOn));
+    alarmBtn.classList.toggle('armed', state.alarmOn);
+    alarmInfo.hidden = !state.alarmOn;
+    if (state.alarmOn) {
+      alarmInfo.textContent = '鬧鐘 ' + formatAlarm() + (audioReady() ? '' : ' · 點一下畫面啟用聲音');
+    }
+  }
+
+  function openPanel(fromKeyboard) {
+    panel.hidden = false;
+    alarmBtn.setAttribute('aria-expanded', 'true');
+    alarmInput.value = state.alarmTime;
+    unlockAudio();
+    if (fromKeyboard) alarmInput.focus();
+  }
+  function closePanel() {
+    if (panel.hidden) return;
+    panel.hidden = true;
+    alarmBtn.setAttribute('aria-expanded', 'false');
+  }
+
+  alarmBtn.addEventListener('click', e => { if (panel.hidden) openPanel(e.detail === 0); else closePanel(); });
+  alarmDone.addEventListener('click', () => { closePanel(); alarmBtn.focus(); });
+  alarmSwitch.addEventListener('click', () => {
+    state.alarmOn = !state.alarmOn;
+    store.set('alarmOn', state.alarmOn);
+    if (state.alarmOn) unlockAudio();
+    updateAlarmInfo();
+  });
+  alarmInput.addEventListener('change', () => {
+    const v = alarmInput.value.slice(0, 5);
+    if (!/^\d{2}:\d{2}$/.test(v)) return;
+    state.alarmTime = v;
+    state.alarmOn = true;   // picking a time means you want it to ring
+    store.setText('alarmTime', v);
+    store.set('alarmOn', true);
+    unlockAudio();
+    updateAlarmInfo();
+  });
+  alarmTest.addEventListener('click', () => {
+    unlockAudio();
+    if (!startTone(2, false) && audio) audio.resume().then(() => startTone(2, false), () => {});
+  });
+  stopBtn.addEventListener('click', stopRinging);
+
+  window.addEventListener('pointerdown', e => {
+    if (!panel.hidden && !panel.contains(e.target) && !alarmBtn.contains(e.target)) closePanel();
+  });
+  window.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    if (ringing) stopRinging();
+    else if (!panel.hidden) { closePanel(); alarmBtn.focus(); }
+  });
+  // Any tap or key press switches sound on when an alarm is set but the browser has not allowed audio yet.
+  for (const type of ['pointerup', 'touchend', 'click', 'keydown']) {
+    window.addEventListener(type, () => {
+      if ((state.alarmOn || ringing) && !audioReady()) unlockAudio();
+    }, { passive: true });
+  }
+
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState !== 'visible') return;
     for (const c of Array.from(active)) settle(c);
+    if (audio && audio.state === 'suspended') audio.resume().then(audioChanged, () => {});
     tick();
     keepAwake();
   });
 
   /* ---- start ---- */
   applySettings();
+  updateAlarmInfo();
   tuneType();
   tick();
   wake();
