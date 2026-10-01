@@ -1,0 +1,616 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>毛玻璃翻頁時鐘</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500&display=swap&text=%200123456789UTC%2B%E5%B9%B4%E6%9C%88%E6%97%A5%E6%98%9F%E6%9C%9F%E4%B8%80%E4%BA%8C%E4%B8%89%E5%9B%9B%E4%BA%94%E5%85%AD%E4%B8%8A%E4%B8%8B%E5%8D%88%E5%8F%B0%E5%8C%97%E5%B0%8F%E6%99%82%E9%A1%AF%E7%A4%BA%E7%A7%92%E6%95%B8%E5%85%A8%E8%9E%A2%E5%B9%95%E7%B5%90%E6%9D%9F">
+<style>
+/* Layout: a true-black room; three frosted split-flap pairs in one centred row (three stacked rows on tall
+   screens); the date beneath; a small control pill pinned to the bottom that fades while the pointer rests. */
+:root {
+  color-scheme: dark;
+  /* colour */
+  --ink: #000;                              /* the room */
+  --glass: rgba(228, 234, 255, 0.06);       /* frosted pane fill, a cool white */
+  --rim: rgba(228, 234, 255, 0.16);         /* pane edge */
+  --rim-lit: rgba(255, 255, 255, 0.34);     /* top edge catching the light */
+  --numeral: #fff;                          /* digits and colon */
+  --muted: rgba(228, 234, 255, 0.62);       /* date, resting controls */
+  --faint: rgba(228, 234, 255, 0.34);       /* zone label, dividers */
+  --light: rgba(228, 234, 255, 0.2);        /* discs of light behind the glass */
+  --light-soft: rgba(228, 234, 255, 0.13);
+  --glow: rgba(255, 255, 255, 0.28);
+  --chip: rgba(255, 255, 255, 0.14);        /* pressed control */
+  --leaf-up: rgba(255, 255, 255, 0.025);    /* upper flap, lit from above */
+  --leaf-down: rgba(0, 0, 0, 0.1);          /* lower flap, a shade darker */
+  --seam: rgba(0, 0, 0, 0.78);              /* the gap between the two flaps */
+  --seam-lit: rgba(255, 255, 255, 0.07);
+  /* type */
+  --face-numeral: "Big Shoulders Display", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --face-text: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", "Heiti TC", sans-serif;
+  --fs-k: 0.86;   /* digit size ÷ card height; re-measured from the loaded font */
+  --nudge: 0em;   /* optical centring of the digits on the seam; re-measured from the loaded font */
+}
+
+html { height: 100%; box-sizing: border-box; background: var(--ink); }
+*, *::before, *::after { box-sizing: inherit; }
+body {
+  height: 100%;
+  margin: 0;
+  padding-inline: max(16px, 4vw);
+  padding-block: 0;
+  overflow: hidden;
+  background: var(--ink);
+  color: var(--numeral);
+  font-family: var(--face-text);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+body.idle { cursor: none; }
+
+/* Light behind the glass: crisp-edged discs, so the panes have something to frost. */
+.light { position: fixed; inset: 0; overflow: hidden; pointer-events: none; }
+.light i { position: absolute; border-radius: 50%; transform: translate(-50%, -50%); }
+.light i:nth-child(1) {
+  left: 34%; top: 44%;
+  width: 44vmax; height: 44vmax;
+  background: linear-gradient(155deg, var(--light), transparent 78%);
+}
+.light i:nth-child(2) {
+  left: 70%; top: 60%;
+  width: 26vmax; height: 26vmax;
+  background: linear-gradient(205deg, var(--light-soft), transparent 80%);
+}
+
+.stage {
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-block: 28px 92px;
+  container: stage / size;
+}
+
+.face {
+  --span: 4.62;   /* row width in card heights: 3 pairs + 2 colons */
+  --rows: 3.24;   /* stack height in card heights: 3 rows + 2 gaps */
+  --h: min(calc(100cqw / var(--span)), 58cqh);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--h) * 0.2);
+  -webkit-user-select: none;
+  user-select: none;
+}
+.face[data-seconds="off"] { --span: 2.96; --rows: 2.12; }
+@supports not (width: 1cqw) {
+  .face { --h: min(calc(92vw / var(--span)), 50vh); }
+}
+
+.clock { display: flex; align-items: center; gap: calc(var(--h) * 0.08); }
+.group { display: flex; gap: calc(var(--h) * 0.06); }
+.colon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--h) * 0.24);
+  width: calc(var(--h) * 0.2);
+}
+.colon i {
+  width: calc(var(--h) * 0.058);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--numeral);
+  box-shadow: 0 0 calc(var(--h) * 0.06) var(--glow);
+}
+
+@container stage (max-aspect-ratio: 4 / 5) {
+  .face { --h: min(calc(100cqw / 1.3), calc(100cqh * 0.76 / var(--rows))); }
+  .clock { flex-direction: column; gap: calc(var(--h) * 0.12); }
+  .colon { display: none; }
+}
+
+/* One split-flap card. The frosted pane sits behind the flaps as a sibling,
+   so the 3D-turning flaps never live inside the element that carries backdrop-filter. */
+.card {
+  --r: calc(var(--h) * 0.075);
+  --ri: calc(var(--r) - 1px);
+  position: relative;
+  width: calc(var(--h) * 0.62);
+  height: var(--h);
+}
+.pane {
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--rim);
+  border-radius: var(--r);
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(calc(var(--h) * 0.08)) saturate(160%);
+  backdrop-filter: blur(calc(var(--h) * 0.08)) saturate(160%);
+  box-shadow:
+    inset 0 1px 0 var(--rim-lit),
+    0 calc(var(--h) * 0.1) calc(var(--h) * 0.2) calc(var(--h) * -0.08) var(--ink);
+}
+.pane::before {   /* frost grain */
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .6 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E") 0 0 / 160px 160px;
+  opacity: 0.08;
+}
+.card::after {   /* the seam between upper and lower flap */
+  content: "";
+  position: absolute;
+  z-index: 4;
+  left: -1px;
+  right: -1px;
+  top: 50%;
+  height: max(2px, calc(var(--h) * 0.011));
+  transform: translateY(-50%);
+  background: var(--seam);
+  box-shadow: 0 1px 0 var(--seam-lit);
+}
+.pin {           /* axle notches at both ends of the seam */
+  position: absolute;
+  z-index: 5;
+  top: 50%;
+  width: calc(var(--h) * 0.03);
+  height: calc(var(--h) * 0.11);
+  transform: translateY(-50%);
+  background: var(--ink);
+  border: 1px solid var(--rim);
+}
+.pin.l { left: -1px; border-left: 0; border-radius: 0 999px 999px 0; }
+.pin.r { right: -1px; border-right: 0; border-radius: 999px 0 0 999px; }
+
+.leaf {
+  position: absolute;
+  z-index: 1;
+  left: 1px;
+  right: 1px;
+  height: calc(50% - 1px);
+  overflow: hidden;
+}
+.leaf.up { top: 1px; border-radius: var(--ri) var(--ri) 0 0; background: var(--leaf-up); }
+.leaf.down { bottom: 1px; border-radius: 0 0 var(--ri) var(--ri); background: var(--leaf-down); }
+.flap { z-index: 2; visibility: hidden; }
+.flap.up { transform-origin: 50% 100%; }
+.flap.down { z-index: 3; transform-origin: 50% 0; }
+.leaf b {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 200%;
+  display: grid;
+  place-items: center;
+  font: 700 calc(var(--h) * var(--fs-k)) / 1 var(--face-numeral);
+  color: var(--numeral);
+  text-shadow: 0 0 0.06em var(--glow);
+  transform: translateY(var(--nudge));
+}
+.leaf.up b { top: 0; }
+.leaf.down b { top: -100%; }
+.shade {
+  position: absolute;
+  inset: 0;
+  background: var(--ink);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.dateline {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.35em 1.4em;
+  font-size: clamp(13px, calc(var(--h) * 0.085), 22px);
+  line-height: 1.4;
+  letter-spacing: 0.16em;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.dateline .zone { color: var(--faint); }
+
+.controls {
+  position: fixed;
+  z-index: 10;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 22px);
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: calc(100% - 32px);
+  padding: 5px;
+  border: 1px solid var(--rim);
+  border-radius: 999px;
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  backdrop-filter: blur(18px) saturate(160%);
+  box-shadow: inset 0 1px 0 var(--rim-lit);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.controls button {
+  appearance: none;
+  margin: 0;
+  border: 0;
+  padding: 9px 14px;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: 500 13px/1 var(--face-text);
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+.controls button:hover { color: var(--numeral); }
+.controls button[aria-pressed="true"] { background: var(--chip); color: var(--numeral); }
+.controls button:focus-visible { outline: 2px solid var(--numeral); outline-offset: 2px; }
+.rule { flex: none; width: 1px; height: 16px; background: var(--faint); }
+body.idle .controls { opacity: 0; transform: translate(-50%, 12px); pointer-events: none; }
+@media (max-width: 380px) {
+  .controls button { padding: 8px 10px; letter-spacing: 0.04em; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .controls, .controls button { transition: none; }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+</style>
+
+<div class="light" aria-hidden="true"><i></i><i></i></div>
+
+<main class="stage">
+  <div class="face" id="face" data-seconds="on">
+    <div class="clock" aria-hidden="true">
+      <div class="group"><div class="card"></div><div class="card"></div></div>
+      <div class="colon"><i></i><i></i></div>
+      <div class="group"><div class="card"></div><div class="card"></div></div>
+      <div class="colon" id="secColon"><i></i><i></i></div>
+      <div class="group" id="secGroup"><div class="card"></div><div class="card"></div></div>
+    </div>
+    <p class="dateline"><span id="date">2026年10月1日 星期四</span><span class="zone">台北 UTC+8</span></p>
+    <p class="sr-only" id="spoken">台北時間</p>
+  </div>
+</main>
+
+<nav class="controls" id="controls" aria-label="時鐘設定">
+  <button type="button" id="mode24" aria-pressed="true">24 小時</button>
+  <button type="button" id="mode12" aria-pressed="false">12 小時</button>
+  <span class="rule" aria-hidden="true"></span>
+  <button type="button" id="secs" aria-pressed="true">顯示秒數</button>
+  <span class="rule" id="fsRule" aria-hidden="true"></span>
+  <button type="button" id="fs">全螢幕</button>
+</nav>
+
+<script>
+(() => {
+  'use strict';
+
+  /* ---- Time in Taipei ---- */
+  const TZ = 'Asia/Taipei';
+  const WEEK = '日一二三四五六';
+  let partsFmt = null, dateFmt = null, dayFmt = null;
+  try {
+    partsFmt = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hourCycle: 'h23', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    dateFmt = new Intl.DateTimeFormat('zh-TW', { timeZone: TZ, year: 'numeric', month: 'long', day: 'numeric' });
+    dayFmt = new Intl.DateTimeFormat('zh-TW', { timeZone: TZ, weekday: 'long' });
+  } catch (e) {
+    partsFmt = dateFmt = dayFmt = null;
+  }
+  function taipei(ms) {
+    if (partsFmt) {
+      const o = {};
+      for (const p of partsFmt.formatToParts(ms)) o[p.type] = p.value;
+      return {
+        h: Number(o.hour) % 24, m: Number(o.minute), s: Number(o.second),
+        date: dateFmt.format(ms) + ' ' + dayFmt.format(ms)
+      };
+    }
+    const d = new Date(ms + 8 * 3600e3);   // Taiwan stays on UTC+8 all year
+    return {
+      h: d.getUTCHours(), m: d.getUTCMinutes(), s: d.getUTCSeconds(),
+      date: d.getUTCFullYear() + '年' + (d.getUTCMonth() + 1) + '月' + d.getUTCDate() + '日 星期' + WEEK[d.getUTCDay()]
+    };
+  }
+  function digitsFor(t, h12) {
+    const h = h12 ? (t.h % 12 || 12) : t.h;
+    return [h / 10 | 0, h % 10, t.m / 10 | 0, t.m % 10, t.s / 10 | 0, t.s % 10].map(String);
+  }
+  /* ---- end time ---- */
+
+  const DUR = 640;       // ms for one flap to fall and settle
+  const FALL = 0.82;     // share of DUR spent falling; the rest is the small bounce on landing
+  const DEPTH = 4.4;     // perspective distance, in half-card heights
+  const STAGGER = 55;    // ms between neighbouring digits when several change at once
+
+  const root = document.documentElement;
+  const face = document.getElementById('face');
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  /* ---- settings, remembered per browser when storage allows ---- */
+  const store = {
+    get(key, fallback) {
+      try { const v = localStorage.getItem('flipclock.' + key); return v === null ? fallback : v === '1'; }
+      catch (e) { return fallback; }
+    },
+    set(key, on) {
+      try { localStorage.setItem('flipclock.' + key, on ? '1' : '0'); } catch (e) {}
+    }
+  };
+  const state = { h12: store.get('h12', false), seconds: store.get('seconds', true) };
+
+  /* ---- cards ---- */
+  const LEAVES =
+    '<div class="pane"></div>' +
+    '<div class="leaf up"><b></b></div>' +
+    '<div class="leaf down"><b></b><i class="shade"></i></div>' +
+    '<div class="leaf up flap"><b></b><i class="shade"></i></div>' +
+    '<div class="leaf down flap"><b></b><i class="shade"></i></div>' +
+    '<i class="pin l"></i><i class="pin r"></i>';
+
+  const cards = Array.from(document.querySelectorAll('.card'), el => {
+    el.innerHTML = LEAVES;
+    const leaf = el.querySelectorAll('.leaf');
+    return {
+      el,
+      upper: leaf[0], lower: leaf[1], flapUp: leaf[2], flapDown: leaf[3],
+      nums: [leaf[0].firstChild, leaf[1].firstChild, leaf[2].firstChild, leaf[3].firstChild],
+      shadeLower: leaf[1].lastChild, shadeUp: leaf[2].lastChild, shadeDown: leaf[3].lastChild,
+      value: null,
+      flip: null
+    };
+  });
+
+  function paint(c, v) {
+    for (const n of c.nums) n.textContent = v;
+    c.flapUp.style.visibility = c.flapDown.style.visibility = '';
+    c.flapUp.style.transform = c.flapDown.style.transform = '';
+    c.upper.style.clipPath = c.lower.style.clipPath = '';
+    c.shadeLower.style.opacity = c.shadeUp.style.opacity = c.shadeDown.style.opacity = '';
+  }
+
+  const active = new Set();
+  let raf = 0;
+
+  function setDigit(c, v, animate, delay) {
+    if (c.value === v) return;
+    if (c.flip) settle(c);
+    const from = c.value;
+    c.value = v;
+    if (!animate || from === null) { paint(c, v); return; }
+    c.nums[0].textContent = v;      // upper half: new digit, uncovered as the flap falls
+    c.nums[1].textContent = from;   // lower half: old digit, covered as the flap lands
+    c.nums[2].textContent = from;   // falling flap: top of the old digit
+    c.nums[3].textContent = v;      // landing flap: bottom of the new digit
+    c.upper.style.clipPath = 'inset(0 0 100% 0)';
+    c.flapUp.style.transform = '';
+    c.flapUp.style.visibility = 'visible';
+    c.flip = { start: performance.now() + delay, half: c.el.clientHeight / 2, landing: false };
+    active.add(c);
+    if (!raf) raf = requestAnimationFrame(frame);
+  }
+
+  function settle(c) {
+    active.delete(c);
+    c.flip = null;
+    paint(c, c.value);
+  }
+
+  function frame(now) {
+    raf = 0;
+    for (const c of active) step(c, now);
+    if (active.size) raf = requestAnimationFrame(frame);
+  }
+
+  // Share of a half-card a flap tilted by `deg` still covers on screen, seen through the perspective.
+  function cover(deg) {
+    const r = deg * Math.PI / 180;
+    return Math.min(1, Math.cos(r) * DEPTH / (DEPTH - Math.sin(r)));
+  }
+
+  function step(c, now) {
+    const f = c.flip;
+    const t = (now - f.start) / DUR;
+    if (t < 0) return;
+    if (t >= 1) { settle(c); return; }
+    // a: how far the flap has travelled, 0 = standing on top, 180 = hanging at the bottom
+    let a;
+    if (t < FALL) {
+      a = 180 * Math.pow(t / FALL, 1.7);
+    } else {
+      const u = (t - FALL) / (1 - FALL);
+      a = 180 - 7 * Math.sin(Math.PI * u) * (1 - 0.4 * u);
+    }
+    const lens = 'perspective(' + (f.half * DEPTH).toFixed(1) + 'px) ';
+    if (a < 90) {
+      const r = a * Math.PI / 180;
+      c.flapUp.style.transform = lens + 'rotateX(' + (-a).toFixed(2) + 'deg)';
+      c.upper.style.clipPath = 'inset(0 0 ' + (cover(a) * 100).toFixed(2) + '% 0)';
+      c.shadeUp.style.opacity = (0.5 * (1 - Math.cos(r))).toFixed(3);
+      c.shadeLower.style.opacity = (0.3 * Math.sin(r)).toFixed(3);
+    } else {
+      if (!f.landing) {
+        f.landing = true;
+        c.flapUp.style.visibility = '';
+        c.upper.style.clipPath = '';
+        c.flapDown.style.visibility = 'visible';
+      }
+      const b = 180 - a;
+      const r = b * Math.PI / 180;
+      c.flapDown.style.transform = lens + 'rotateX(' + b.toFixed(2) + 'deg)';
+      c.lower.style.clipPath = 'inset(' + (cover(b) * 100).toFixed(2) + '% 0 0 0)';
+      c.shadeDown.style.opacity = (0.5 * (1 - Math.cos(r))).toFixed(3);
+      c.shadeLower.style.opacity = (0.3 * Math.sin(r)).toFixed(3);
+    }
+  }
+
+  /* ---- type: size the digits and centre them on the seam, whatever font actually loaded ---- */
+  function tuneType() {
+    const ctx = document.createElement('canvas').getContext('2d');
+    if (!ctx) return;
+    const cs = getComputedStyle(cards[0].nums[0]);
+    const F = 200;
+    ctx.font = cs.fontWeight + ' ' + F + 'px ' + cs.fontFamily;
+    const m = ctx.measureText('0123456789');
+    const ink = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent;
+    if (!(ink > 0)) return;
+    let widest = 0;
+    for (const d of '0123456789') widest = Math.max(widest, ctx.measureText(d).width);
+    // digits stand 60% of the card tall, and the widest never takes more than 78% of its width
+    const k = Math.min(0.6 * F / ink, 0.62 * 0.78 * F / widest);
+    root.style.setProperty('--fs-k', k.toFixed(4));
+    if (typeof m.fontBoundingBoxAscent === 'number') {
+      const inkMid = (m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) / 2;
+      const boxMid = (m.fontBoundingBoxAscent - m.fontBoundingBoxDescent) / 2;
+      root.style.setProperty('--nudge', ((inkMid - boxMid) / F).toFixed(4) + 'em');
+    }
+  }
+
+  /* ---- clock ---- */
+  const dateEl = document.getElementById('date');
+  const spokenEl = document.getElementById('spoken');
+  const pad = n => (n < 10 ? '0' : '') + n;
+  let lastDate = '', lastSpoken = '';
+
+  function render(animate) {
+    const t = taipei(Date.now());
+    const digits = digitsFor(t, state.h12);
+    const motion = animate && !reduce.matches;
+    let order = 0;
+    for (let i = (state.seconds ? 6 : 4) - 1; i >= 0; i--) {
+      if (cards[i].value !== digits[i]) setDigit(cards[i], digits[i], motion, STAGGER * order++);
+    }
+    const date = t.date + (state.h12 ? ' ' + (t.h < 12 ? '上午' : '下午') : '');
+    if (date !== lastDate) { dateEl.textContent = date; lastDate = date; }
+    const spoken = '台北時間 ' + pad(t.h) + ':' + pad(t.m);
+    if (spoken !== lastSpoken) { spokenEl.textContent = spoken; lastSpoken = spoken; }
+  }
+
+  let timer = 0;
+  function tick() {
+    render(!document.hidden);
+    clearTimeout(timer);
+    timer = setTimeout(tick, 1000 - (Date.now() % 1000) + 12);
+  }
+
+  /* ---- controls ---- */
+  const controls = document.getElementById('controls');
+  const btn24 = document.getElementById('mode24');
+  const btn12 = document.getElementById('mode12');
+  const btnSec = document.getElementById('secs');
+  const btnFs = document.getElementById('fs');
+  const secGroup = document.getElementById('secGroup');
+  const secColon = document.getElementById('secColon');
+
+  function applySettings() {
+    btn24.setAttribute('aria-pressed', String(!state.h12));
+    btn12.setAttribute('aria-pressed', String(state.h12));
+    btnSec.setAttribute('aria-pressed', String(state.seconds));
+    face.dataset.seconds = state.seconds ? 'on' : 'off';
+    secGroup.hidden = secColon.hidden = !state.seconds;
+  }
+
+  function setH12(on) {
+    if (state.h12 === on) return;
+    state.h12 = on;
+    store.set('h12', on);
+    applySettings();
+    render(true);
+  }
+  btn24.addEventListener('click', () => setH12(false));
+  btn12.addEventListener('click', () => setH12(true));
+  btnSec.addEventListener('click', () => {
+    state.seconds = !state.seconds;
+    store.set('seconds', state.seconds);
+    for (const c of cards.slice(4)) {
+      if (c.flip) settle(c);
+      c.value = null;   // shown again later: appear at the current second, no flip from a stale one
+    }
+    applySettings();
+    render(true);
+  });
+
+  const fsElement = () => document.fullscreenElement || document.webkitFullscreenElement || null;
+  const canFs = !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
+  if (!canFs) {
+    btnFs.hidden = true;
+    document.getElementById('fsRule').hidden = true;
+  }
+  async function toggleFullscreen() {
+    try {
+      if (fsElement()) await (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+      else await (root.requestFullscreen || root.webkitRequestFullscreen).call(root);
+    } catch (e) { /* refused by the browser; the clock simply stays as it is */ }
+  }
+  const syncFs = () => { btnFs.textContent = fsElement() ? '結束全螢幕' : '全螢幕'; };
+  btnFs.addEventListener('click', toggleFullscreen);
+  face.addEventListener('dblclick', () => { if (canFs) toggleFullscreen(); });
+  document.addEventListener('fullscreenchange', syncFs);
+  document.addEventListener('webkitfullscreenchange', syncFs);
+
+  // Keep the screen on while the clock is in view, where the browser allows it.
+  let lock = null, asking = false;
+  async function keepAwake() {
+    if (lock || asking || !('wakeLock' in navigator) || document.visibilityState !== 'visible') return;
+    asking = true;
+    try {
+      lock = await navigator.wakeLock.request('screen');
+      lock.addEventListener('release', () => { lock = null; });
+    } catch (e) {
+      lock = null;
+    }
+    asking = false;
+  }
+
+  // Controls fade out after a few still seconds and come back on any movement, tap or key.
+  let idleTimer = 0;
+  function wake() {
+    document.body.classList.remove('idle');
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => {
+      if (controls.matches(':hover') || controls.querySelector(':focus-visible')) wake();
+      else document.body.classList.add('idle');
+    }, 3500);
+  }
+  for (const type of ['pointermove', 'pointerdown', 'keydown']) {
+    window.addEventListener(type, wake, { passive: true });
+  }
+  window.addEventListener('pointerdown', keepAwake, { passive: true });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return;
+    for (const c of Array.from(active)) settle(c);
+    tick();
+    keepAwake();
+  });
+
+  /* ---- start ---- */
+  applySettings();
+  tuneType();
+  tick();
+  wake();
+  keepAwake();
+  if (document.fonts) {
+    document.fonts.ready.then(tuneType);
+    document.fonts.load('700 100px "Big Shoulders Display"').then(tuneType, () => {});
+  }
+})();
+</script>
+
+</body></html>
